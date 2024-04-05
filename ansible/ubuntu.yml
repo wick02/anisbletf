@@ -1,0 +1,36 @@
+  - name: Install Node Exporter on Ubuntu EC2 instances
+    hosts: ubuntu_instances
+    become: yes
+    gather_facts: yes
+
+    tasks:
+      - name: Download Node Exporter binary
+        get_url:
+          url: "https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz"
+          dest: "/tmp/node_exporter.tar.gz"
+
+      - name: Extract Node Exporter archive
+        unarchive:
+          src: "/tmp/node_exporter.tar.gz"
+          dest: "/opt/"
+          remote_src: yes
+
+      - name: Rename Node Exporter directory
+        command: mv /opt/node_exporter-* /opt/node_exporter
+
+      - name: Create Node Exporter user
+        user:
+          name: node_exporter
+          system: yes
+
+      - name: Change ownership of Node Exporter directory
+        file:
+          path: "/opt/node_exporter"
+          owner: node_exporter
+          group: node_exporter
+
+      - name: Create systemd service file for Node Exporter
+        copy:
+          src: "node_exporter.service"
+          dest: "/etc/systemd/system/node_exporter.service"
+        notify: Restart Node Exporter service

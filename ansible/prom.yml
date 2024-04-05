@@ -1,0 +1,60 @@
+- name: Install Prometheus on Ubuntu EC2 instances
+  hosts: prom_server
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Download Prometheus binary
+      get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v2.51.1/prometheus-2.51.1.linux-amd64.tar.gz"
+        dest: "/tmp/prometheus.tar.gz"
+
+    - name: Extract Prometheus archive
+      unarchive:
+        src: "/tmp/prometheus.tar.gz"
+        dest: "/opt/"
+        remote_src: yes
+
+    - name: Rename Prometheus directory
+      command: mv /opt/prometheus-* /opt/prometheus
+
+    - name: Create Prometheus user
+      user:
+        name: prometheus
+        system: yes
+
+    - name: Change ownership of Prometheus directory
+      file:
+        path: "/opt/prometheus"
+        owner: prometheus
+        group: prometheus
+
+    - name: Create data and configuration directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+      with_items:
+        - "/opt/prometheus/data"
+        - "/opt/prometheus/config"
+
+    - name: Copy Prometheus configuration file
+      copy:
+        src: "prometheus.yml"
+        dest: "/opt/prometheus/config/prometheus.yml"
+        owner: prometheus
+        group: prometheus
+
+    - name: Create systemd service file for Prometheus
+      copy:
+        src: "prometheus.service"
+        dest: "/etc/systemd/system/prometheus.service"
+      notify: Restart Prometheus service
+
+  handlers:
+    - name: Restart Prometheus service
+      service:
+        name: prometheus
+        state: restarted
