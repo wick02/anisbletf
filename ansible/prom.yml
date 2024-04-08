@@ -42,7 +42,7 @@
 
     - name: Copy Prometheus configuration file
       copy:
-        src: "prometheus.yml"
+        src: "prometheus/prometheus.yml"
         dest: "/opt/prometheus/config/prometheus.yml"
         owner: prometheus
         group: prometheus
